@@ -3,7 +3,7 @@ name: Deploy to Cloud Run
 env:
   SERVICE_NAME: portfolio-service
   PROJECT_ID: mlpt-cloudteam-migration
-  DOCKER_IMAGE_URL: asia-southeast2-docker.pkg.dev/mlpt-cloudteam-migration/portfolio-repo/portfolio-service
+  DOCKER_IMAGE_URL: asia-southeast2-docker.pkg.dev/mlpt-cloudteam-migration/portfolio-repo
 
 on:
   push:
