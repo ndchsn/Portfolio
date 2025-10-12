@@ -23,6 +23,45 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: mlpt-cloudteam-migration
 
+      - name: Fallback: activate service account from secret (if needed)
+        env:
+          SERVICE_KEY: ${{ secrets.GCP_SA_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          # If setup-gcloud didn't register credentials, try activating the
+          # service account directly from the secret JSON. This also helps
+          # detect malformed secrets (e.g. newlines stripped) and will fail
+          # loudly if activation doesn't work.
+          echo "Checking existing credentials..."
+          if gcloud auth list --format='value(account)' | grep -q '.'; then
+            echo "Credentials already present, skipping fallback activation"
+            gcloud auth list
+            exit 0
+          fi
+
+          echo "No credentialed accounts found; attempting to activate service account from secret"
+          # write the secret to a file (do not print the private key)
+          printf '%s' "$SERVICE_KEY" > /tmp/gcp-key.json
+          KEY_BYTES=$(wc -c < /tmp/gcp-key.json || true)
+          echo "Key file size: ${KEY_BYTES:-0} bytes"
+          # safe diagnostic: print the client_email field from the JSON key if present
+      python3 -c "import json,sys
+try:
+  j=json.load(open('/tmp/gcp-key.json'))
+  print('client_email:', j.get('client_email'))
+except:
+  print('client_email: <unreadable>')
+  sys.exit(0)"
+
+          if ! gcloud auth activate-service-account --key-file=/tmp/gcp-key.json; then
+            echo "ERROR: gcloud auth activate-service-account failed. Check that GCP_SA_KEY secret contains the full JSON key with newlines preserved." >&2
+            exit 1
+          fi
+
+          gcloud config set project "$GCP_PROJECT_ID"
+          echo "Post-activation accounts:"
+          gcloud auth list
+
       - name: Verify gcloud authentication and project
         run: |
           # Show authenticated accounts and active project to verify the SA key was applied
