@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="grid">
+  <aside class="card profile-card">
+    <h3>Key Competencies</h3>
+    <ul class="skills">
+      {% for s in profile.skills %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+    <p></p>
+    <h3>Certificates</h3>
+    <ul>
+      {% for c in profile.certificates %}
+      <li>{{ c }}</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Contact</h3>
+    <p>Email: <a href="mailto:{{ profile.contact.email }}">{{ profile.contact.email }}</a></p>
+    <p>Phone: {{ profile.contact.phone }}</p>
+  </aside>
+
+  <section class="card main-card">
+    <h2>Experiences</h2>
+    {% for e in profile.experiences %}
+    <article class="experience">
+      <h4>{{ e.role }} <span class="muted">— {{ e.company }}</span></h4>
+      <div class="period">{{ e.period }}</div>
+      <p>{{ e.details }}</p>
+    </article>
+    {% endfor %}
+
+    <h2>Education</h2>
+    {% for ed in profile.education %}
+    <div class="education">
+      <strong>{{ ed.degree }}</strong>
+      <div class="muted">{{ ed.school }} · {{ ed.year }}</div>
+    </div>
+    {% endfor %}
+  </section>
+</section>
+
+{% endblock %}
