@@ -1,133 +1,55 @@
-name: Build and Deploy to Cloud Run loh ya
+name: Deploy to Cloud Run loh yaa
+
+env:
+  SERVICE_NAME: portfolio-service
+  PROJECT_ID: mlpt-cloudteam-migration
+  DOCKER_IMAGE_URL: asia-southeast2-docker.pkg.dev/mlpt-cloudteam-migration/portfolio-repo
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    pull_request:
+      branches:
+        - main
 
 jobs:
-  deploy:
+  dockerize-deploy:
+    name: Build and Deploy to Cloud Run
     runs-on: ubuntu-latest
-    env:
-      GCP_PROJECT_ID: mlpt-cloudteam-migration
-      GCP_REGION: asia-southeast2
-      # IMAGE will be computed at runtime in a step so we avoid workflow
-      # expression-in-env lint warnings. The image target uses Artifact
-      # Registry regional host (asia-southeast2-docker.pkg.dev).
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+        uses: 'google-github-actions/auth@v2'
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: mlpt-cloudteam-migration
-
-      - name: Fallback: activate service account from secret (if needed)
-        env:
-          SERVICE_KEY: ${{ secrets.GCP_SA_KEY }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ env.PROJECT_ID }}
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          
+      - name: Set Up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+      
+      - name: Configure Docker for Google Artifact Registry
         run: |
-          # If setup-gcloud didn't register credentials, try activating the
-          # service account directly from the secret JSON. This also helps
-          # detect malformed secrets (e.g. newlines stripped) and will fail
-          # loudly if activation doesn't work.
-          echo "Checking existing credentials..."
-          if gcloud auth list --format='value(account)' | grep -q '.'; then
-            echo "Credentials already present, skipping fallback activation"
-            gcloud auth list
-            exit 0
-          fi
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev
 
-          echo "No credentialed accounts found; attempting to activate service account from secret"
-          # write the secret to a file (do not print the private key)
-          printf '%s' "$SERVICE_KEY" > /tmp/gcp-key.json
-          KEY_BYTES=$(wc -c < /tmp/gcp-key.json || true)
-          echo "Key file size: ${KEY_BYTES:-0} bytes"
-          # safe diagnostic: print the client_email field from the JSON key if present
-      python3 -c "import json,sys
-try:
-  j=json.load(open('/tmp/gcp-key.json'))
-  print('client_email:', j.get('client_email'))
-except:
-  print('client_email: <unreadable>')
-  sys.exit(0)"
-
-          if ! gcloud auth activate-service-account --key-file=/tmp/gcp-key.json; then
-            echo "ERROR: gcloud auth activate-service-account failed. Check that GCP_SA_KEY secret contains the full JSON key with newlines preserved." >&2
-            exit 1
-          fi
-
-          gcloud config set project "$GCP_PROJECT_ID"
-          echo "Post-activation accounts:"
-          gcloud auth list
-
-      - name: Verify gcloud authentication and project
+      - name: Build Docker image
         run: |
-          # Show authenticated accounts and active project to verify the SA key was applied
-          echo "gcloud auth list:";
-          gcloud auth list || true
-          echo "gcloud config get-value project:";
-          gcloud config get-value project || true
+          docker build -t ${{ env.DOCKER_IMAGE_URL }}:latest -f Dockerfile .
 
-      - name: Configure Docker for Artifact Registry
+      - name: Push Docker image to Artifact Registry
         run: |
-          # Configure docker credential helper for Artifact Registry host used by IMAGE
-          gcloud auth configure-docker asia-southeast2-docker.pkg.dev --quiet
-
-      - name: Ensure Artifact Registry repo exists
-        run: |
-          # Fail early with a helpful message if the repo is missing. The
-          # service account should already have roles/artifactregistry.writer.
-          if ! gcloud artifacts repositories describe portfolio-repo --location="$GCP_REGION" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
-            echo "ERROR: Artifact Registry repository 'portfolio-repo' not found in region $GCP_REGION for project $GCP_PROJECT_ID." >&2
-            echo "Create it with: gcloud artifacts repositories create portfolio-repo --repository-format=docker --location=$GCP_REGION --project=$GCP_PROJECT_ID" >&2
-            exit 1
-          fi
-
-      - name: Build and push Docker image
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          set -e
-          IMAGE_HOST="asia-southeast2-docker.pkg.dev"
-          IMAGE="$IMAGE_HOST/$GCP_PROJECT_ID/portfolio-repo/portfolio-flask:$GITHUB_SHA"
-          echo "Building and pushing image: $IMAGE"
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
+          docker push ${{ env.DOCKER_IMAGE_URL }}:latest
 
       - name: Deploy to Cloud Run
-        id: deploy
         run: |
-          # Recompute IMAGE here to pass to gcloud run deploy
-          IMAGE_HOST="asia-southeast2-docker.pkg.dev"
-          IMAGE="$IMAGE_HOST/$GCP_PROJECT_ID/portfolio-repo/portfolio-flask:$GITHUB_SHA"
-          gcloud run deploy portfolio-flask \
-            --image "$IMAGE" \
+          echo SERVICE_NAME $SERVICE_NAME
+          gcloud run deploy $SERVICE_NAME \
+            --image ${{ env.DOCKER_IMAGE_URL }}:latest \
+            --region asia-southeast2 \
             --platform managed \
-            --region "$GCP_REGION" \
             --allow-unauthenticated \
-            --quiet
 
-      - name: Smoke test Cloud Run service
-        run: |
-          set -e
-          # get service URL
-          URL=$(gcloud run services describe portfolio-flask --platform managed --region "$GCP_REGION" --format 'value(status.url)')
-          echo "Service URL: $URL"
-
-          # simple retry loop: try up to 10 times, 5s between tries
-          n=0
-          until [ $n -ge 10 ]
-          do
-            echo "Attempt $((n+1)) to curl $URL"
-            if curl -fsS -m 10 "$URL" >/dev/null; then
-              echo "Smoke test passed"
-              exit 0
-            fi
-            n=$((n+1))
-            sleep 5
-          done
-
-          echo "Smoke test failed: service did not respond with HTTP 200 within retries"
-          exit 1
+  
