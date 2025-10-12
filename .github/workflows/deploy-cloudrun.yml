@@ -10,7 +10,9 @@ jobs:
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ secrets.GCP_REGION }}
-      IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/portfolio-flask:${{ github.sha }}
+      # IMAGE will be computed at runtime in a step so we avoid workflow
+      # expression-in-env lint warnings. The image target uses Artifact
+      # Registry regional host (asia-southeast2-docker.pkg.dev).
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,18 +23,38 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Configure Docker for gcr
+      - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker --quiet
+          # Configure docker credential helper for Artifact Registry host used by IMAGE
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev --quiet
 
-      - name: Build Docker image
+      - name: Ensure Artifact Registry repo exists
         run: |
+          # Fail early with a helpful message if the repo is missing. The
+          # service account should already have roles/artifactregistry.writer.
+          if ! gcloud artifacts repositories describe portfolio-repo --location="$GCP_REGION" >/dev/null 2>&1; then
+            echo "ERROR: Artifact Registry repository 'portfolio-repo' not found in region $GCP_REGION." >&2
+            echo "Create it with: gcloud artifacts repositories create portfolio-repo --repository-format=docker --location=$GCP_REGION --project=$GCP_PROJECT_ID" >&2
+            exit 1
+          fi
+
+      - name: Build and push Docker image
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -e
+          IMAGE_HOST="asia-southeast2-docker.pkg.dev"
+          IMAGE="$IMAGE_HOST/$GCP_PROJECT_ID/portfolio-repo/portfolio-flask:$GITHUB_SHA"
+          echo "Building and pushing image: $IMAGE"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
         id: deploy
         run: |
+          # Recompute IMAGE here to pass to gcloud run deploy
+          IMAGE_HOST="asia-southeast2-docker.pkg.dev"
+          IMAGE="$IMAGE_HOST/$GCP_PROJECT_ID/portfolio-repo/portfolio-flask:$GITHUB_SHA"
           gcloud run deploy portfolio-flask \
             --image "$IMAGE" \
             --platform managed \
