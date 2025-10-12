@@ -32,7 +32,7 @@ jobs:
         run: |
           # Fail early with a helpful message if the repo is missing. The
           # service account should already have roles/artifactregistry.writer.
-          if ! gcloud artifacts repositories describe portfolio-repo --location="asia-southeast2" >/dev/null 2>&1; then
+          if ! gcloud artifacts repositories describe portfolio-repo --location=asia-southeast2 >/dev/null 2>&1; then
             echo "ERROR: Artifact Registry repository 'portfolio-repo' not found in region asia-southeast2." >&2
             echo "Create it with: gcloud artifacts repositories create portfolio-repo --repository-format=docker --location=asia-southeast2 --project=mlpt-cloudteam-migration" >&2
             exit 1
