@@ -7,6 +7,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/portfolio-flask:${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,16 +27,38 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE=gcr.io/${{ secrets.GCP_PROJECT_ID }}/portfolio-flask:${{ github.sha }}
-          docker build -t $IMAGE .
-          docker push $IMAGE
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
+        id: deploy
         run: |
-          IMAGE=gcr.io/${{ secrets.GCP_PROJECT_ID }}/portfolio-flask:${{ github.sha }}
           gcloud run deploy portfolio-flask \
-            --image $IMAGE \
+            --image "$IMAGE" \
             --platform managed \
-            --region ${{ secrets.GCP_REGION }} \
+            --region "$GCP_REGION" \
             --allow-unauthenticated \
             --quiet
+
+      - name: Smoke test Cloud Run service
+        run: |
+          set -e
+          # get service URL
+          URL=$(gcloud run services describe portfolio-flask --platform managed --region "$GCP_REGION" --format 'value(status.url)')
+          echo "Service URL: $URL"
+
+          # simple retry loop: try up to 10 times, 5s between tries
+          n=0
+          until [ $n -ge 10 ]
+          do
+            echo "Attempt $((n+1)) to curl $URL"
+            if curl -fsS -m 10 "$URL" >/dev/null; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            n=$((n+1))
+            sleep 5
+          done
+
+          echo "Smoke test failed: service did not respond with HTTP 200 within retries"
+          exit 1
