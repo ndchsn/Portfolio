@@ -8,8 +8,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ secrets.GCP_REGION }}
+      GCP_PROJECT_ID: mlpt-cloudteam-migration
+      GCP_REGION: asia-southeast2
       # IMAGE will be computed at runtime in a step so we avoid workflow
       # expression-in-env lint warnings. The image target uses Artifact
       # Registry regional host (asia-southeast2-docker.pkg.dev).
@@ -21,7 +21,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: mlpt-cloudteam-migration
 
       - name: Configure Docker for Artifact Registry
         run: |
