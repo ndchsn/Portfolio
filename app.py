@@ -2,11 +2,19 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()  # load variables from .env if present
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
+
+# Set log level from env (default INFO)
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+try:
+    app.logger.setLevel(getattr(logging, log_level, logging.INFO))
+except Exception:
+    app.logger.setLevel(logging.INFO)
 
 def _log_smtp_status_once():
     host = os.getenv("SMTP_HOST")
@@ -22,7 +30,7 @@ _log_smtp_status_once()
 # --- Sample data (silakan ganti dengan data Anda) ---
 PROFILE = {
     "name": "Andi Muhammad Ichsan Jalaluddin",
-    "role": "Cloud Engineer / DevOps Engineer",
+    "role": "Cloud Engineer | DevOps Engineer",
     "summary": "I am a Cloud Engineer with a strong focus on Google Cloud Platform (GCP) and Microsoft Azure, specializing in designing, implementing, and optimizing cloud infrastructure. My work involves exploring and utilizing various cloud services to build scalable, efficient, and secure solutions. I am also passionate about automation, cloud networking, and cost optimization to ensure effective resource management. For me, cloud technology is not just about infrastructure—it’s about creating innovative solutions that drive real impact for businesses and users.",
     "avatar": "static/images/photo.png",  # gunakan salah satu gambar yang sudah ada
     "location": "Jakarta, Indonesia",
@@ -122,6 +130,8 @@ def contact():
     name = request.form.get("name", "").strip()
     sender_email = request.form.get("email", "").strip()
     message = request.form.get("message", "").strip()
+    # Log incoming contact request
+    app.logger.info("[CONTACT_REQUEST] name=%s email=%s len=%s", name or "-", sender_email or "-", len(message))
 
     if not message:
         flash("Pesan tidak boleh kosong.", "danger")
@@ -138,6 +148,7 @@ Pesan:
 
     # 1) Prefer SendGrid API if available (reliable on free hosts), else fallback to SMTP
     sent = False
+    method_used = None
     sg_key = os.getenv("SENDGRID_API_KEY")
     sg_from = os.getenv("SENDGRID_FROM") or os.getenv("SMTP_USER") or target
     if sg_key:
@@ -159,6 +170,7 @@ Pesan:
             if r.status_code in (200, 202):
                 flash("Pesan terkirim. Terima kasih!", "success")
                 sent = True
+                method_used = "sendgrid"
             else:
                 app.logger.error("SendGrid failed status=%s body=%s", r.status_code, r.text)
         except Exception as e:
@@ -195,10 +207,13 @@ Pesan:
 
             flash("Pesan terkirim. Terima kasih!", "success")
             sent = True
+            method_used = "smtp"
         except Exception as e:
             app.logger.exception("Gagal mengirim email (SMTP): %s", e)
             app.logger.info("[CONTACT_FALLBACK] to=%s subject=%s body=%s", target, subject, body)
 
+    if sent:
+        app.logger.info("[CONTACT_SENT] method=%s name=%s email=%s len=%s", method_used, name or "-", sender_email or "-", len(message))
     if not sent:
         # Fallback: log bila semua metode gagal/tdk dikonfigurasi
         app.logger.info("[CONTACT_LOG_ONLY] to=%s subject=%s body=%s", target, subject, body)
