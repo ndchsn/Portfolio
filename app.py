@@ -136,7 +136,35 @@ Pesan:
 {message}
 """
 
-    # SMTP config via env
+    # 1) Prefer SendGrid API if available (reliable on free hosts), else fallback to SMTP
+    sent = False
+    sg_key = os.getenv("SENDGRID_API_KEY")
+    sg_from = os.getenv("SENDGRID_FROM") or os.getenv("SMTP_USER") or target
+    if sg_key:
+        try:
+            import requests
+            payload = {
+                "personalizations": [{"to": [{"email": target}]}],
+                "from": {"email": sg_from},
+                "subject": subject,
+                "content": [{"type": "text/plain", "value": body}]
+            }
+            if sender_email:
+                payload["reply_to"] = {"email": sender_email}
+            headers = {
+                "Authorization": f"Bearer {sg_key}",
+                "Content-Type": "application/json"
+            }
+            r = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=20)
+            if r.status_code in (200, 202):
+                flash("Pesan terkirim. Terima kasih!", "success")
+                sent = True
+            else:
+                app.logger.error("SendGrid failed status=%s body=%s", r.status_code, r.text)
+        except Exception as e:
+            app.logger.exception("SendGrid exception: %s", e)
+
+    # 2) SMTP config via env (fallback)
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", "587"))
     user = os.getenv("SMTP_USER")
@@ -144,7 +172,7 @@ Pesan:
     use_smtp = bool(host and user and pwd)
     missing = [k for k,v in {"SMTP_HOST":host, "SMTP_USER":user, "SMTP_PASS":pwd}.items() if not v]
 
-    if use_smtp:
+    if not sent and use_smtp:
         try:
             msg = MIMEText(body, "plain", "utf-8")
             msg["Subject"] = subject
@@ -153,20 +181,29 @@ Pesan:
             if sender_email:
                 msg["Reply-To"] = sender_email
 
-            with smtplib.SMTP(host, port, timeout=20) as server:
-                server.starttls()
-                server.login(user, pwd)
-                server.send_message(msg)
+            # Try TLS:587, fallback SSL:465
+            try:
+                with smtplib.SMTP(host, port, timeout=20) as server:
+                    server.starttls()
+                    server.login(user, pwd)
+                    server.send_message(msg)
+            except OSError:
+                import smtplib as _s
+                with _s.SMTP_SSL(host, 465, timeout=20) as server:
+                    server.login(user, pwd)
+                    server.send_message(msg)
+
             flash("Pesan terkirim. Terima kasih!", "success")
+            sent = True
         except Exception as e:
-            app.logger.exception("Gagal mengirim email: %s", e)
-            flash("Gagal mengirim email. Pesan dicatat di log.", "danger")
+            app.logger.exception("Gagal mengirim email (SMTP): %s", e)
             app.logger.info("[CONTACT_FALLBACK] to=%s subject=%s body=%s", target, subject, body)
-    else:
-        # Fallback: log saja bila SMTP belum dikonfigurasi
+
+    if not sent:
+        # Fallback: log bila semua metode gagal/tdk dikonfigurasi
         app.logger.info("[CONTACT_LOG_ONLY] to=%s subject=%s body=%s", target, subject, body)
         detail = f" (missing: {', '.join(missing)})" if missing else ""
-        flash(f"SMTP belum dikonfigurasi{detail}. Pesan dicatat di log.", "warning")
+        flash(f"SMTP/API belum ready{detail}. Pesan dicatat di log.", "warning")
 
     return redirect(url_for("index") + "#contact")
 
