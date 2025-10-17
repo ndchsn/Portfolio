@@ -54,3 +54,7 @@ Thumbs.db
 
 # Sensitive / config files
 *.json
+# Env files (do not commit secrets)
+.env
+.env.*
+!.env.example

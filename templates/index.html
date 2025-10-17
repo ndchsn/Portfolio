@@ -1,45 +1,193 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
-<section class="grid">
-  <aside class="card profile-card">
-    <h3>Key Competencies</h3>
-    <ul class="skills">
-      {% for s in profile.skills %}
-      <li>{{ s }}</li>
-      {% endfor %}
-    </ul>
-    <p></p>
-    <h3>Certificates</h3>
-    <ul>
-      {% for c in profile.certificates %}
-      <li>{{ c }}</li>
-      {% endfor %}
-    </ul>
-
-    <h3>Contact</h3>
-    <p>Email: <a href="mailto:{{ profile.contact.email }}">{{ profile.contact.email }}</a></p>
-    <p>Phone: {{ profile.contact.phone }}</p>
-  </aside>
-
-  <section class="card main-card">
-    <h2>Experiences</h2>
-    {% for e in profile.experiences %}
-    <article class="experience">
-      <h4>{{ e.role }} <span class="muted">— {{ e.company }}</span></h4>
-      <div class="period">{{ e.period }}</div>
-      <p>{{ e.details }}</p>
-    </article>
-    {% endfor %}
-
-    <h2>Education</h2>
-    {% for ed in profile.education %}
-    <div class="education">
-      <strong>{{ ed.degree }}</strong>
-      <div class="muted">{{ ed.school }} · {{ ed.year }}</div>
+<section class="hero container section-gap" id="summary">
+  <div class="row align-items-center g-5">
+    <div class="col-12 col-lg-7">
+      <h1 class="display-5 fw-bold lh-1 gradient-text mb-3">
+        {{ profile.role }}
+      </h1>
+      <p class="lead text-secondary">{{ profile.summary }}</p>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% for link in profile.links %}
+        <a class="btn btn-outline-light btn-glow" href="{{ link.url }}" target="_blank" rel="noopener">
+          <i class="bi bi-box-arrow-up-right me-1"></i>{{ link.label }}
+        </a>
+        {% endfor %}
+      </div>
+      <div class="stack-badges mt-4">
+        <span class="badge rounded-pill bg-primary-subtle text-primary">GCP</span>
+        <span class="badge rounded-pill bg-info-subtle text-info">Azure</span>
+        <span class="badge rounded-pill bg-warning-subtle text-warning">Terraform</span>
+        <span class="badge rounded-pill bg-success-subtle text-success">Containerization</span>
+        <span class="badge rounded-pill bg-danger-subtle text-danger">Observability</span>
+        <span class="badge rounded-pill bg-secondary-subtle text-secondary">Observability</span>
+        <p></p>
+        <span class="badge rounded-pill bg-light-subtle text-dark">Observability</span>
+      </div>
     </div>
-    {% endfor %}
-  </section>
+    <div class="col-12 col-lg-5 text-center">
+      <div class="avatar-wrap">
+        <img src="{{ url_for('static', filename='images/photo.png') }}" alt="Avatar" class="avatar shadow-lg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+      </div>
+    </div>
+  </div>
 </section>
 
+<section class="container section-gap" id="experiences">
+  <div class="section-header">
+    <h2 class="h3 fw-bold"><i class="bi bi-diagram-3 me-2"></i>Experiences</h2>
+    <p class="text-secondary">Professional Journey and main contributions.</p>
+  </div>
+  <div class="timeline">
+    {% for exp in experiences %}
+    <div class="timeline-item reveal">
+      <div class="dot"></div>
+      <div class="card glass p-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <h3 class="h5 mb-1">{{ exp.role }} — <span class="text-primary">{{ exp.company }}</span></h3>
+            <div class="text-secondary small">{{ exp.period }}</div>
+          </div>
+        </div>
+        <p class="mt-3 mb-2 text-secondary">{{ exp.summary }}</p>
+        <ul class="mb-0">
+            {% for h in exp.highlights %}
+            <li>{{ h }}</li>
+            {% endfor %}
+        </ul>
+        <p></p>
+        <p></p>
+        <div class="d-flex flex-wrap gap-2">
+          {% for s in exp.stack %}
+          <span class="badge text-bg-dark">{{ s }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section-gap" id="expertise">
+  <div class="section-header">
+    <h2 class="h3 fw-bold"><i class="bi bi-cpu me-2"></i>Expertise</h2>
+    <p class="text-secondary">Core areas of expertise that I master.</p>
+  </div>
+  <div class="row g-4">
+    {% for e in expertise %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card glass h-100 p-4 reveal">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="icon-bubble">{{ e.icons[0] }}</div>
+          <h3 class="h5 mb-0">{{ e.name }}</h3>
+        </div>
+        <p class="text-secondary mb-0">{{ e.desc }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section-gap" id="certification">
+  <div class="section-header">
+    <h2 class="h3 fw-bold"><i class="bi bi-patch-check me-2"></i>Certification</h2>
+    <p class="text-secondary">Professional Certifications</p>
+  </div>
+  <div class="row g-3">
+    {% for c in certifications %}
+    <div class="col-12 col-md-6 col-lg-4">
+      {% if c.url %}
+      <a class="card glass p-4 d-flex justify-content-between h-100 reveal text-reset text-decoration-none" href="{{ c.url }}" target="_blank" rel="noopener">
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-award text-warning"></i>
+            <h3 class="h6 mb-0">{{ c.name }}</h3>
+          </div>
+          <div class="small text-secondary mt-1">{{ c.issuer }} • {{ c.year }}</div>
+        </div>
+        <div class="mt-3">
+          <span class="badge rounded-pill bg-primary-subtle text-primary"><i class="bi bi-box-arrow-up-right me-1"></i>Verified</span>
+        </div>
+      </a>
+      {% else %}
+      <div class="card glass p-4 d-flex justify-content-between h-100 reveal">
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-award text-warning"></i>
+            <h3 class="h6 mb-0">{{ c.name }}</h3>
+          </div>
+          <div class="small text-secondary mt-1">{{ c.issuer }} • {{ c.year }}</div>
+        </div>
+        <div class="mt-3">
+          <span class="badge rounded-pill bg-secondary-subtle text-secondary">Add credential URL</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section-gap" id="education">
+  <div class="section-header">
+    <h2 class="h3 fw-bold"><i class="bi bi-mortarboard me-2"></i>Education</h2>
+    <p class="text-secondary">Education Background</p>
+  </div>
+  <div class="row g-4">
+    {% for edu in education %}
+    <div class="col-12 col-lg-6">
+      <div class="card glass p-4 reveal">
+        <h3 class="h5 mb-1">{{ edu.school }}</h3>
+        <div class="text-secondary small mb-2">{{ edu.period }}</div>
+        <div class="fw-semibold">{{ edu.degree }}</div>
+        <p class="mb-0 text-secondary mt-2">{{ edu.details }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section-gap" id="contact">
+  <div class="section-header">
+    <h2 class="h3 fw-bold"><i class="bi bi-envelope-paper-heart me-2"></i>Contact Me</h2>
+    <p class="text-secondary">Any Contribution or questions? Send Messages.</p>
+  </div>
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <form class="card glass p-4 chat-card" method="post" action="{{ url_for('contact') }}">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <input class="form-control" type="text" name="name" placeholder="Nama (opsional)">
+          </div>
+          <div class="col-12 col-md-6">
+            <input class="form-control" type="email" name="email" placeholder="Email (opsional)">
+          </div>
+        </div>
+        <div class="chat-input-wrap mt-2">
+          <textarea class="form-control chat-textarea" name="message" rows="4" placeholder="Tulis pesan Anda..." required></textarea>
+        </div>
+        <div class="col-12 d-flex align-items-center gap-3 mt-2">
+          <button class="btn btn-primary btn-glow" type="submit">
+            <i class="bi bi-send-fill me-1"></i>Kirim
+          </button>
+          <span class="text-secondary small"></span>
+        </div>
+      </form>
+    </div>
+    <div class="col-12 col-lg-5">
+      <div class="card glass p-4 h-100">
+        <h3 class="h6 mb-3 text-primary">Info</h3>
+        <ul class="list-unstyled mb-0">
+          <li class="mb-2"><i class="bi bi-geo-alt me-2 text-primary"></i>{{ profile.location }}</li>
+          <li class="mb-2"><i class="bi bi-envelope-at me-2 text-primary"></i>{{ profile.email }}</li>
+          <li class="mb-2"><i class="bi bi-whatsapp me-2 text-success"></i><a class="link-light" href="https://wa.me/{{ profile.whatsapp }}" target="_blank">WhatsApp</a></li>
+          <li class="mb-2"><i class="bi bi-github me-2 text-primary"></i><a class="link-light" href="{{ profile.links[0].url }}" target="_blank">GitHub</a></li>
+          <li class="mb-2"><i class="bi bi-linkedin me-2 text-primary"></i><a class="link-light" href="{{ profile.links[1].url }}" target="_blank">LinkedIn</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
