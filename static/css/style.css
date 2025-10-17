@@ -188,3 +188,37 @@ a { text-decoration: none; }
 #expertise h3{ color: var(--text); }
 #certification h3{ color: var(--text); }
 #education h3, #education .fw-semibold{ color: var(--text); }
+
+/* Responsive adjustments */
+@media (max-width: 991.98px){
+  .content-wrapper{ padding-top: 72px; }
+  .section-gap{ padding-top: 56px; padding-bottom: 56px; }
+  .hero .avatar{ width: 200px; height: 200px; }
+  .orb{ width: 90px; height: 90px; filter: blur(18px); }
+  .timeline{ padding-left: 18px; }
+  .timeline:before{ left: 6px; }
+  .timeline-item .dot{ left: -4px; top: 14px; }
+  h1.display-5{ font-size: 2.2rem; }
+  .stack-badges .badge{ padding: 8px 12px; }
+}
+
+@media (max-width: 575.98px){
+  .content-wrapper{ padding-top: 64px; }
+  .section-gap{ padding-top: 44px; padding-bottom: 44px; }
+  .navbar .navbar-brand{ font-size: 1rem; }
+  .hero .avatar{ width: 140px; height: 140px; border-radius: 16px; }
+  .orb{ width: 70px; height: 70px; filter: blur(14px); }
+  h1.display-5{ font-size: 1.75rem; }
+  .lead{ font-size: 1rem; }
+  .btn-glow{ width: 100%; }
+  .stack-badges{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .stack-badges .badge{ font-size: .8rem; padding: 6px 10px; }
+  /* Timeline simplify */
+  .timeline{ margin-left: 0; padding-left: 0; }
+  .timeline:before{ display: none; }
+  .timeline-item .dot{ display: none; }
+  .card.glass{ border-radius: 12px; }
+  .card.glass.p-4{ padding: 1rem !important; }
+  /* Contact form spacing */
+  #contact .chat-card .chat-textarea{ min-height: 120px; }
+}
