@@ -31,7 +31,7 @@ _log_smtp_status_once()
 PROFILE = {
     "name": "Andi Muhammad Ichsan Jalaluddin",
     "role": "Cloud Engineer | DevOps Engineer",
-    "summary": "I am a Cloud Engineer with a strong focus on Google Cloud Platform (GCP) and Microsoft Azure, specializing in designing, implementing, and optimizing cloud infrastructure. My work involves exploring and utilizing various cloud services to build scalable, efficient, and secure solutions. I am also passionate about automation, cloud networking, and cost optimization to ensure effective resource management. For me, cloud technology is not just about infrastructure—it’s about creating innovative solutions that drive real impact for businesses and users.",
+    "summary": "I am a Cloud & DevOps Engineer with strong expertise in Google Cloud Platform (GCP) and Microsoft Azure, specializing in designing, deploying, and optimizing scalable, secure, and high-performance cloud infrastructures. My work involves integrating cloud-native services with modern DevOps practices to enhance automation, reliability, and delivery efficiency across environments. I am passionate about implementing CI/CD pipelines, infrastructure as code (IaC), cloud networking, cost optimization, and platform observability to ensure seamless operations and continuous improvement. For me, cloud and DevOps are more than just tools—they are enablers for innovation, operational excellence, and delivering real value to businesses and end-users.",
     "avatar": "static/images/photo.png",  # gunakan salah satu gambar yang sudah ada
     "location": "Jakarta, Indonesia",
     "email": "andiichsan123@gmail.com",
