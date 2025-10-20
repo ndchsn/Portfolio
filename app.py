@@ -95,7 +95,7 @@ CERTIFICATIONS = [
     {"name": "GCP - Professional Cloud Security Engineer", "issuer": "Google Cloud Platform", "year": "April 2025", "url": "https://www.credly.com/badges/5f6cb191-a002-4ee7-8d64-258c439e6d75/public_url"},
     {"name": "GCP - Professional Cloud Developer", "issuer": "Google Cloud Platform", "year": "October 2025", "url": "https://www.credly.com/badges/05f0782e-7480-4720-a352-d218d9d76b27/public_url"},
     {"name": "GCP - Professional Cloud DevOps Engineer", "issuer": "Google Cloud Platform", "year": "October 2025"},
-    {"name": "Azure - az-500 Security Engineer", "issuer": "Microsoft Azure", "year": "October 2025"},
+    {"name": "Azure - az-500 Security Engineer", "issuer": "Microsoft Azure", "year": "October 2025", "url": "https://learn.microsoft.com/api/credentials/share/en-us/AndiMuhammadIchsanJalaluddin-8142/7913E4E2C09ECBA1?sharingId=ED44CD5BBFD9E3C7"},
         
 ]
 
